@@ -1,8 +1,52 @@
 ﻿@{
-    ViewData["Title"] = "Home Page"; 
+    ViewData["Title"] = "Inicio";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="text-center mt-5">
+    <h1 class="display-3 fw-bold text-primary">DiarIA 🤖</h1>
+    <p class="lead mb-4">
+        Tu planificador inteligente. Deja que la IA organice tu día según tu energía.
+    </p>
+
+    <div class="card shadow-sm mx-auto" style="max-width: 600px;">
+        <div class="card-body p-5">
+            @if (User.Identity != null && User.Identity.IsAuthenticated)
+            {
+                <div class="text-success mb-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-person-circle" viewBox="0 0 16 16">
+                        <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z" />
+                        <path fill-rule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z" />
+                    </svg>
+                </div>
+                <h2 class="h4 mb-3">¡Hola, @User.Identity.Name!</h2>
+                <p class="text-muted">Tu panel de tareas está listo en la nube.</p>
+                <div class="d-grid gap-2">
+                    <a asp-controller="Tareas" asp-action="Index" class="btn btn-primary btn-lg">
+                        ⚡ Ir a mis Tareas
+                    </a>
+                </div>
+            }
+            else
+            {
+                <div class="mb-4">
+                    <i class="bi bi-shield-lock" style="font-size: 3rem; color: #6c757d;"></i>
+                </div>
+                <h3 class="h5 mb-3">Empieza ahora</h3>
+                <p class="text-muted mb-4">Regístrate para guardar tus tareas en Azure y recibir consejos de GPT-4o.</p>
+
+                <div class="d-grid gap-3">
+                    <a class="btn btn-primary btn-lg" asp-area="Identity" asp-page="/Account/Login">
+                        Iniciar Sesión
+                    </a>
+                    <a class="btn btn-outline-secondary" asp-area="Identity" asp-page="/Account/Register">
+                        Crear Cuenta Gratis
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="mt-5 text-muted small">
+        <p>Potenciado por <strong>Azure OpenAI (GPT-4o)</strong> & <strong>ASP.NET Core 8</strong></p>
+    </div>
 </div>
