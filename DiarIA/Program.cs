@@ -1,6 +1,7 @@
+using DiarIA.Data;
+using DiarIA.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using DiarIA.Data;
 var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("strConexion") ?? throw new InvalidOperationException("Connection string 'DiarIAContextConnection' not found.");
 
@@ -11,6 +12,7 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.Requ
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
+builder.Services.AddScoped<IAIService, AIService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
