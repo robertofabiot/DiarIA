@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DiarIA.Data;
 
-public class DiarIAContext : IdentityDbContext<IdentityUser>
+public class DiarIAContext : IdentityDbContext<ApplicationUser>
 {
     public DiarIAContext(DbContextOptions<DiarIAContext> options)
         : base(options)
@@ -18,6 +18,6 @@ public class DiarIAContext : IdentityDbContext<IdentityUser>
         // Customize the ASP.NET Identity model and override the defaults if needed.
         // For example, you can rename the ASP.NET Identity table names and more.
         // Add your customizations after calling base.OnModelCreating(builder);
-    }
+    }   
     public DbSet<Tarea> Tareas { get; set; }
 }

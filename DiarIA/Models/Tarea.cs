@@ -43,7 +43,7 @@ namespace DiarIA.Models
         public string? UserId { get; set; }
 
         [ForeignKey("UserId")]
-        public virtual IdentityUser? Usuario { get; set; }
+        public virtual ApplicationUser? Usuario { get; set; }
     }
 
     public enum NivelPrioridad

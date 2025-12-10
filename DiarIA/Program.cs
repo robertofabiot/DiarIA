@@ -1,4 +1,5 @@
 using DiarIA.Data;
+using DiarIA.Models;
 using DiarIA.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -7,7 +8,8 @@ var connectionString = builder.Configuration.GetConnectionString("strConexion") 
 
 builder.Services.AddDbContext<DiarIAContext>(options => options.UseSqlServer(connectionString));
 
-builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true).AddEntityFrameworkStores<DiarIAContext>();
+builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
+    .AddEntityFrameworkStores<DiarIAContext>();
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
