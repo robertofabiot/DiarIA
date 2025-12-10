@@ -59,11 +59,17 @@ namespace DiarIA.Controllers
 
                 // 4. Guardar cambios en la Base de Datos
                 int cambios = 0;
+                int tareasVencidas = 0;
                 foreach (var sugerencia in tareasSugeridas)
                 {
                     var tareaOriginal = misTareas.FirstOrDefault(t => t.Id == sugerencia.Id);
                     if (tareaOriginal != null)
                     {
+                        if (sugerencia.FechaAgendada.HasValue &&
+                                                sugerencia.FechaAgendada.Value > tareaOriginal.FechaTope)
+                        {
+                            tareasVencidas++;
+                        }
                         // Si la fecha cambió, la actualizamos
                         if (tareaOriginal.FechaAgendada != sugerencia.FechaAgendada)
                         {
@@ -77,7 +83,13 @@ namespace DiarIA.Controllers
                 if (cambios > 0)
                 {
                     await _context.SaveChangesAsync();
-                    TempData["Success"] = $"¡Hecho! Se reprogramaron {cambios} tareas.";
+                    string mensaje = $"¡Hecho! Se reprogramaron {cambios} tareas.";
+
+                    if (tareasVencidas > 0)
+                    {
+                        mensaje += $" ⚠️ Advertencia: {tareasVencidas} tarea(s) sobrepasa(n) la fecha límite.";
+                    }
+                    TempData["Success"] = mensaje;
                 }
                 else
                 {

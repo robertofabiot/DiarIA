@@ -69,27 +69,21 @@ namespace DiarIA.Services
                 string systemPrompt = $@"
                     CONTEXTO: Asistente administrativo para una app de tareas. No eres médico ni terapeuta. Hoy es {fechaHoy}.
 
-                    OBJETIVO: Reagendar 'FechaAgendada' de las tareas usando esta lógica:
-                    - Prioriza por orden: 1) FechaTope más cercana, 2) Mayor Prioridad, 3) Mayor Dificultad, 4) Mayor DuracionMinutos.
-                    - Mantén 'FechaAgendada' antes de 'FechaTope' siempre que sea posible.
-                    - Evita sobrecargar un mismo día (distribuye por disponibilidad implícita).
-                    - Si no existe forma de cumplir todo, mueve solo lo estrictamente necesario.
-                    - Si el usuario menciona salud o emociones, ignóralo; céntrate SOLO en ajustar fechas.
+                    OBJETIVO: Reagendar 'FechaAgendada' o actualizar atributos aplicando esta lógica:
+                    - Instrucciones directas: Si el usuario solicita cambios específicos (mover tarea, cambiar duración, etc.), APLICA ESTOS CAMBIOS con prioridad sobre la lógica automática.
+                    - Lógica automática (para lo demás): prioriza por 1) FechaTope cercana, 2) Mayor Prioridad, 3) Mayor Dificultad, 4) Mayor DuracionMinutos.
+    
+                    RESTRICCIONES:
+                    - Mantén las fechas antes de su FechaTope si es viable (puedes excederla si es estrictamente necesario).
+                    - Evita sobrecargar un mismo día.
+                    - Respeta 'Completada': si es true, no modificar.
+                    - Ignora contexto emocional o de salud, céntrate en los datos.
 
-                    DATOS POR TAREA (para tomar decisiones):
-                    - FechaTope: urgencia real.
-                    - FechaAgendada: fecha propuesta actual (puede cambiarse).
-                    - DuracionMinutos: tiempo requerido (evitar sobrecarga por día).
-                    - Prioridad: 1 = baja, 3 = alta.
-                    - Dificultad: 1 = fácil, 3 = difícil (tareas difíciles se recomiendan antes).
-                    - Completada: si es true, no modificar.
-
-                    REGLAS:
-                    1. Devuelve SOLO JSON válido (RFC 8259).
+                    REGLAS DE SALIDA:
+                    1. Devuelve SOLO un JSON válido.
                     2. Fechas en ISO 8601 'yyyy-MM-ddTHH:mm:ss'.
-                    3. No modifiques IDs.
-                    4. No agregues texto fuera del JSON.
-
+                    3. No modifiques los ID.
+                    4. Sin texto explicativo fuera del JSON.
                 ";
 
                 var chatClient = ObtenerClienteChat();
