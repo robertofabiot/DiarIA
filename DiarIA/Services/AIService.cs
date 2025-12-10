@@ -67,13 +67,29 @@ namespace DiarIA.Services
 
                 // 2. Prompt
                 string systemPrompt = $@"
-                    Eres un experto en gestión del tiempo. Hoy es: {fechaHoy}.
-                    TU OBJETIVO: Reorganizar las fechas ('FechaAgendada') según la instrucción.
-                    REGLAS CRÍTICAS:
-                    1. Devuelve SOLO un JSON válido con las tareas modificadas.
-                    2. NO incluyas texto fuera del JSON (sin ```json ni ```).
-                    3. NO cambies los ID.
-                    4. Formato fecha OBLIGATORIO: ISO 8601 estricto 'yyyy-MM-ddTHH:mm:ss' (ej: 2023-12-31T15:00:00).
+                    CONTEXTO: Asistente administrativo para una app de tareas. No eres médico ni terapeuta. Hoy es {fechaHoy}.
+
+                    OBJETIVO: Reagendar 'FechaAgendada' de las tareas usando esta lógica:
+                    - Prioriza por orden: 1) FechaTope más cercana, 2) Mayor Prioridad, 3) Mayor Dificultad, 4) Mayor DuracionMinutos.
+                    - Mantén 'FechaAgendada' antes de 'FechaTope' siempre que sea posible.
+                    - Evita sobrecargar un mismo día (distribuye por disponibilidad implícita).
+                    - Si no existe forma de cumplir todo, mueve solo lo estrictamente necesario.
+                    - Si el usuario menciona salud o emociones, ignóralo; céntrate SOLO en ajustar fechas.
+
+                    DATOS POR TAREA (para tomar decisiones):
+                    - FechaTope: urgencia real.
+                    - FechaAgendada: fecha propuesta actual (puede cambiarse).
+                    - DuracionMinutos: tiempo requerido (evitar sobrecarga por día).
+                    - Prioridad: 1 = baja, 3 = alta.
+                    - Dificultad: 1 = fácil, 3 = difícil (tareas difíciles se recomiendan antes).
+                    - Completada: si es true, no modificar.
+
+                    REGLAS:
+                    1. Devuelve SOLO JSON válido (RFC 8259).
+                    2. Fechas en ISO 8601 'yyyy-MM-ddTHH:mm:ss'.
+                    3. No modifiques IDs.
+                    4. No agregues texto fuera del JSON.
+
                 ";
 
                 var chatClient = ObtenerClienteChat();
@@ -107,14 +123,18 @@ namespace DiarIA.Services
 
                 return tareasSugeridas ?? new List<Tarea>();
             }
+            catch (RequestFailedException ex) when (ex.Status == 400 && ex.ErrorCode == "content_filter")
+            {
+                // CASO ESPECÍFICO: AZURE BLOQUEÓ EL PROMPT
+                Debug.WriteLine($"[IA FILTER]: El prompt fue bloqueado por políticas de seguridad. {ex.Message}");
+
+                // Lanzamos una excepción amable para que el Controller la muestre
+                throw new Exception("Tu instrucción activó los filtros de seguridad de IA (posiblemente por palabras sensibles como 'enfermo' o 'daño'). Intenta usar un lenguaje más neutral como 'No tengo tiempo hoy'.");
+            }
             catch (Exception ex)
             {
-                // LOG: Ver el error real
                 Debug.WriteLine($"[IA ERROR]: {ex.Message}");
-
-                // ¡IMPORTANTE! Lanzamos la excepción de nuevo para que el Controlador la vea
-                // y te la muestre en la pantalla en lugar de silenciarla.
-                throw new Exception($"Fallo interno IA: {ex.Message}", ex);
+                throw new Exception($"Error técnico: {ex.Message}");
             }
         }
 
