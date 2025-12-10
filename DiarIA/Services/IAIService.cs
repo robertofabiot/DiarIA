@@ -1,10 +1,12 @@
-﻿using System.Threading.Tasks;
+﻿using DiarIA.Models; // Asegúrate de tener este using
 
 namespace DiarIA.Services
 {
     public interface IAIService
     {
-        // Este es el contrato que AIService debe cumplir
         Task<string> ObtenerSugerenciaAsync(string promptUsuario, bool modoPrueba);
+
+        // NUEVO MÉTODO:
+        Task<List<Tarea>> ReorganizarTareasAsync(List<Tarea> tareasActuales, string instruccionUsuario);
     }
 }
