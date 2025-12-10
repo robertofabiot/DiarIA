@@ -2,6 +2,7 @@
 using DiarIA.Models;
 using DiarIA.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -18,11 +19,16 @@ namespace DiarIA.Controllers
     {
         private readonly DiarIAContext _context;
         private readonly IAIService _aiService;
+        private readonly UserManager<ApplicationUser> _userManager; 
 
-        public TareasController(DiarIAContext context, IAIService aiService)
+        // Actualizamos el constructor agregando userManager
+        public TareasController(DiarIAContext context,
+                                IAIService aiService,
+                                UserManager<ApplicationUser> userManager)
         {
             _context = context;
             _aiService = aiService;
+            _userManager = userManager; 
         }
 
         // --- ACCIÓN NUEVA: REORGANIZAR ---
@@ -32,6 +38,16 @@ namespace DiarIA.Controllers
         {
             try
             {
+                // --- INICIO BLOQUE DE SEGURIDAD PREMIUM ---
+                var user = await _userManager.GetUserAsync(User); // Obtenemos el usuario completo
+
+                if (user == null || !user.IsPremium) // Verificamos la bandera
+                {
+                    TempData["Error"] = "Esta función es exclusiva para usuarios Premium 💎";
+                    return RedirectToAction(nameof(Index));
+                }
+                // --- FIN BLOQUE DE SEGURIDAD PREMIUM ---
+
                 var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
                 // Traemos TODAS las tareas (incluso completadas si queremos permitir que la IA las reactive, 
