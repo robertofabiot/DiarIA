@@ -32,48 +32,76 @@ namespace DiarIA.Controllers
         {
             try
             {
-                // 1. Obtener ID del usuario
                 var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-                // 2. Obtener tareas pendientes de este usuario
-                var misTareas = await _context.Tareas
-                                              .Where(t => t.UserId == userId && !t.Completada)
-                                              .ToListAsync();
+                // Traemos TODAS las tareas (incluso completadas si queremos permitir que la IA las reactive, 
+                // pero por ahora filtramos para proteger datos históricos, aunque el usuario podría pedir 'marcar X como completada')
+                // CAMBIO: Traemos todo lo que pertenezca al usuario para permitir ediciones globales.
+                var misTareas = await _context.Tareas.Where(t => t.UserId == userId).ToListAsync();
 
                 if (!misTareas.Any())
                 {
-                    TempData["Error"] = "No tienes tareas pendientes para reorganizar.";
+                    TempData["Error"] = "No tienes tareas para procesar.";
                     return RedirectToAction(nameof(Index));
                 }
 
-                // 3. Llamar a la IA
-                // (Asegúrate de haber actualizado IAIService con el método ReorganizarTareasAsync)
+                // Llamada a la IA
                 var tareasSugeridas = await _aiService.ReorganizarTareasAsync(misTareas, instruccionIA);
 
                 if (tareasSugeridas == null || !tareasSugeridas.Any())
                 {
-                    // Si llega aquí sin excepción, es que la IA devolvió una lista vacía válida (ningún cambio)
-                    TempData["Info"] = "La IA analizó tu agenda pero no encontró cambios necesarios.";
+                    TempData["Info"] = "La IA no sugirió cambios.";
                     return RedirectToAction(nameof(Index));
                 }
 
-                // 4. Guardar cambios en la Base de Datos
                 int cambios = 0;
                 int tareasVencidas = 0;
+
                 foreach (var sugerencia in tareasSugeridas)
                 {
                     var tareaOriginal = misTareas.FirstOrDefault(t => t.Id == sugerencia.Id);
-                    if (tareaOriginal != null)
+
+                    // Verificamos que la tarea exista y pertenezca al usuario (seguridad extra)
+                    if (tareaOriginal != null && tareaOriginal.UserId == userId)
                     {
-                        if (sugerencia.FechaAgendada.HasValue &&
-                                                sugerencia.FechaAgendada.Value > tareaOriginal.FechaTope)
-                        {
-                            tareasVencidas++;
-                        }
-                        // Si la fecha cambió, la actualizamos
+                        bool tareaModificada = false;
+
+                        // 1. Actualizar FECHA (Lógica original)
                         if (tareaOriginal.FechaAgendada != sugerencia.FechaAgendada)
                         {
                             tareaOriginal.FechaAgendada = sugerencia.FechaAgendada;
+                            tareaModificada = true;
+                        }
+
+                        // 2. Actualizar DURACIÓN (Corrección QA #3)
+                        if (tareaOriginal.DuracionMinutos != sugerencia.DuracionMinutos)
+                        {
+                            tareaOriginal.DuracionMinutos = sugerencia.DuracionMinutos;
+                            tareaModificada = true;
+                        }
+
+                        // 3. Actualizar COMPLETADA (Corrección QA #7)
+                        if (tareaOriginal.Completada != sugerencia.Completada)
+                        {
+                            tareaOriginal.Completada = sugerencia.Completada;
+                            tareaModificada = true;
+                        }
+
+                        // 4. Actualizar PRIORIDAD
+                        if (tareaOriginal.Prioridad != sugerencia.Prioridad)
+                        {
+                            tareaOriginal.Prioridad = sugerencia.Prioridad;
+                            tareaModificada = true;
+                        }
+
+                        // Chequeo de Vencimiento
+                        if (sugerencia.FechaAgendada.HasValue && sugerencia.FechaAgendada.Value > tareaOriginal.FechaTope)
+                        {
+                            tareasVencidas++;
+                        }
+
+                        if (tareaModificada)
+                        {
                             _context.Update(tareaOriginal);
                             cambios++;
                         }
@@ -83,26 +111,22 @@ namespace DiarIA.Controllers
                 if (cambios > 0)
                 {
                     await _context.SaveChangesAsync();
-                    string mensaje = $"¡Hecho! Se reprogramaron {cambios} tareas.";
+                    string mensaje = $"✅ IA Aplicada: {cambios} atributos actualizados.";
+                    if (tareasVencidas > 0) mensaje += $" (Atención: {tareasVencidas} tareas exceden su fecha límite).";
 
-                    if (tareasVencidas > 0)
-                    {
-                        mensaje += $" ⚠️ Advertencia: {tareasVencidas} tarea(s) sobrepasa(n) la fecha límite.";
-                    }
                     TempData["Success"] = mensaje;
                 }
                 else
                 {
-                    TempData["Info"] = "Tu agenda ya cumple con esa instrucción.";
+                    TempData["Info"] = "La instrucción se entendió, pero los datos ya coinciden con lo solicitado.";
                 }
 
                 return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)
             {
-                // AQUÍ ESTÁ EL DEBUG QUE NECESITAS
-                // Te mostrará el error técnico exacto en la alerta roja de la página web
-                TempData["Error"] = $"DEBUG ERROR: {ex.Message}";
+                // Esto mostrará el mensaje amigable de "Content Filter" si ocurre
+                TempData["Error"] = ex.Message;
                 return RedirectToAction(nameof(Index));
             }
         }

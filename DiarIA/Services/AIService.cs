@@ -49,86 +49,96 @@ namespace DiarIA.Services
         {
             try
             {
-                // 1. Serializar
+                // 1. Serializar con formato explícito para darle el ejemplo a la IA
                 var tareasLight = tareasActuales.Select(t => new
                 {
                     t.Id,
                     t.Nombre,
                     t.DuracionMinutos,
                     t.Prioridad,
-                    FechaAgendada = t.FechaAgendada?.ToString("yyyy-MM-ddTHH:mm:ss"), // Agrega la T y los segundos
-                    t.FechaTope
+                    t.Dificultad,
+                    t.Completada,
+                    // Forzamos el formato en la entrada para que la IA vea el patrón
+                    FechaAgendada = t.FechaAgendada?.ToString("yyyy-MM-ddTHH:mm:ss"),
+                    FechaTope = t.FechaTope.ToString("yyyy-MM-ddTHH:mm:ss")
                 });
+
                 string jsonEntrada = JsonSerializer.Serialize(tareasLight);
-                string fechaHoy = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
+                string fechaHoy = DateTime.Now.ToString("yyyy-MM-dd dddd");
 
-                // LOG: Ver qué enviamos
-                Debug.WriteLine($"[IA REQUEST] Enviando {tareasActuales.Count} tareas. Instrucción: {instruccionUsuario}");
-
-                // 2. Prompt
+                // 2. Prompt BLINDADO
                 string systemPrompt = $@"
-                    CONTEXTO: Asistente administrativo para una app de tareas. No eres médico ni terapeuta. Hoy es {fechaHoy}.
+            ERES: Un motor de planificación logística experto. Hoy es {fechaHoy}.
+            ENTRADA: Un JSON con tareas y una instrucción del usuario.
+            SALIDA: Un JSON válido con las tareas modificadas.
 
-                    OBJETIVO: Reagendar 'FechaAgendada' o actualizar atributos aplicando esta lógica:
-                    - Instrucciones directas: Si el usuario solicita cambios específicos (mover tarea, cambiar duración, etc.), APLICA ESTOS CAMBIOS con prioridad sobre la lógica automática.
-                    - Lógica automática (para lo demás): prioriza por 1) FechaTope cercana, 2) Mayor Prioridad, 3) Mayor Dificultad, 4) Mayor DuracionMinutos.
-    
-                    RESTRICCIONES:
-                    - Mantén las fechas antes de su FechaTope si es viable (puedes excederla si es estrictamente necesario).
-                    - Evita sobrecargar un mismo día.
-                    - Respeta 'Completada': si es true, no modificar.
-                    - Ignora contexto emocional o de salud, céntrate en los datos.
+            --- REGLAS DE FORMATO TÉCNICO (CRÍTICAS) ---
+            1. FECHAS: Debes usar ESTRICTAMENTE el formato ISO 8601 extendido: 'yyyy-MM-ddTHH:mm:ss'. 
+               - CORRECTO: '2025-12-13T10:00:00'
+               - INCORRECTO: '13/12/2025', '2025-12-13 10:00' (falta la T).
+            2. JSON PURO: Tu respuesta debe ser SOLO el array JSON. No uses bloques de código markdown (```json).
+            3. INTEGRIDAD: Devuelve siempre el objeto completo con su ID original.
 
-                    REGLAS DE SALIDA:
-                    1. Devuelve SOLO un JSON válido.
-                    2. Fechas en ISO 8601 'yyyy-MM-ddTHH:mm:ss'.
-                    3. No modifiques los ID.
-                    4. Sin texto explicativo fuera del JSON.
-                ";
+            --- LÓGICA DE NEGOCIO ---
+            1. INSTRUCCIONES DEL USUARIO: Tienen prioridad absoluta. 
+               - Si pide cambiar duración, prioridad o estado ('completada'), MODIFICA esos campos.
+               - Si dice 'Libera el día X', NO dejes la fecha nula (null). MUEVE esas tareas al siguiente día hábil disponible.
+               - Si dice 'Estoy enfermo', mueve las tareas urgentes 2 días hacia adelante.
+            2. AGENDAMIENTO AUTOMÁTICO:
+               - Prioriza: 1) FechaTope cercana, 2) Urgencia, 3) Dificultad.
+        ";
 
                 var chatClient = ObtenerClienteChat();
                 List<ChatMessage> messages = new List<ChatMessage>()
-                {
-                    new SystemChatMessage(systemPrompt),
-                    new UserChatMessage($"TAREAS: {jsonEntrada}\n\nINSTRUCCIÓN: {instruccionUsuario}")
-                };
+        {
+            new SystemChatMessage(systemPrompt),
+            new UserChatMessage($"DATA: {jsonEntrada}\n\nCOMMAND: {instruccionUsuario}")
+        };
 
-                // 3. Llamada
                 ChatCompletionOptions options = new ChatCompletionOptions()
                 {
-                    Temperature = 0.1f, // Muy preciso
+                    Temperature = 0.2f,
                     MaxOutputTokenCount = 4000
                 };
 
                 ChatCompletion completion = await chatClient.CompleteChatAsync(messages, options);
+
+                // Validación básica
+                if (completion.Content == null || completion.Content.Count == 0)
+                {
+                    throw new Exception("La IA no devolvió ninguna respuesta.");
+                }
+
                 string respuestaTexto = completion.Content[0].Text;
 
-                // LOG: Ver qué respondió la IA (CRUCIAL)
-                Debug.WriteLine("--------------------------------------------------");
-                Debug.WriteLine($"[IA RESPONSE RAW]: \n{respuestaTexto}");
-                Debug.WriteLine("--------------------------------------------------");
+                // Limpieza de Markdown (por si acaso la IA ignora la regla 2 del formato)
+                if (respuestaTexto.StartsWith("```json")) respuestaTexto = respuestaTexto.Substring(7);
+                if (respuestaTexto.StartsWith("```")) respuestaTexto = respuestaTexto.Substring(3);
+                if (respuestaTexto.EndsWith("```")) respuestaTexto = respuestaTexto.Substring(0, respuestaTexto.Length - 3);
+                respuestaTexto = respuestaTexto.Trim();
 
-                // 4. Limpieza
-                respuestaTexto = respuestaTexto.Replace("```json", "").Replace("```", "").Trim();
-
-                // 5. Deserializar
+                // 3. Deserializar
+                // Usamos PropertyNameCaseInsensitive para evitar errores si la IA pone "id" minúscula
                 var opcionesJson = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
                 var tareasSugeridas = JsonSerializer.Deserialize<List<Tarea>>(respuestaTexto, opcionesJson);
 
                 return tareasSugeridas ?? new List<Tarea>();
             }
             catch (RequestFailedException ex) when (ex.Status == 400 && ex.ErrorCode == "content_filter")
             {
-                // CASO ESPECÍFICO: AZURE BLOQUEÓ EL PROMPT
-                Debug.WriteLine($"[IA FILTER]: El prompt fue bloqueado por políticas de seguridad. {ex.Message}");
-
-                // Lanzamos una excepción amable para que el Controller la muestre
-                throw new Exception("Tu instrucción activó los filtros de seguridad de IA (posiblemente por palabras sensibles como 'enfermo' o 'daño'). Intenta usar un lenguaje más neutral como 'No tengo tiempo hoy'.");
+                throw new Exception("Tu instrucción contiene palabras bloqueadas por seguridad (violencia, autolesión, etc). Por favor reformula.");
+            }
+            catch (JsonException ex)
+            {
+                // Este catch capturará el error si la IA falla en el formato de fecha
+                Debug.WriteLine($"[JSON ERROR]: {ex.Message}");
+                throw new Exception("Error interpretando la respuesta de la IA. Posiblemente un formato de fecha inválido. Inténtalo de nuevo.");
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"[IA ERROR]: {ex.Message}");
-                throw new Exception($"Error técnico: {ex.Message}");
+                throw;
             }
         }
 
