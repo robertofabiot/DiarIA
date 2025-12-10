@@ -1,7 +1,9 @@
-using System.Diagnostics;
 using DiarIA.Models;
-using Microsoft.AspNetCore.Mvc;
 using DiarIA.Services;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using System.Diagnostics;
+using Microsoft.AspNetCore.Authorization;
 
 namespace DiarIA.Controllers
 {
@@ -9,11 +11,13 @@ namespace DiarIA.Controllers
     {
         private readonly ILogger<HomeController> _logger;
         private readonly IAIService _aiService;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public HomeController(ILogger<HomeController> logger, IAIService aiService)
+        public HomeController(ILogger<HomeController> logger, IAIService aiService, UserManager<ApplicationUser> userManager)
         {
             _logger = logger;
             _aiService = aiService;
+            _userManager = userManager;
         }
 
         public IActionResult Index()
@@ -34,26 +38,51 @@ namespace DiarIA.Controllers
 
         #region AI
         // GET: Muestra el formulario vacío
-        public IActionResult TestAI()
+        [Authorize]
+        public async Task<IActionResult> TestAI()
         {
+            var user = await _userManager.GetUserAsync(User);
+
+            // Pasamos el estado a la vista usando ViewBag
+            if (user != null)
+            {
+                ViewBag.IsPremium = user.IsPremium;
+            }
+            else
+            {
+                ViewBag.IsPremium = false; // Si no está logueado, no es premium
+            }
+
             return View();
         }
 
         // POST: Recibe los datos y llama al servicio
+        [Authorize]
         [HttpPost]
         public async Task<IActionResult> TestAI(string prompt, bool modoPrueba)
         {
+            var user = await _userManager.GetUserAsync(User);
+
+            // Verificación de seguridad
+            if (user == null || !user.IsPremium)
+            {
+                return RedirectToAction("Index");
+            }
+
             if (string.IsNullOrWhiteSpace(prompt))
             {
                 ViewBag.Respuesta = "Escribe algo primero.";
+                ViewBag.IsPremium = true; // <--- IMPORTANTE: Mantener la vista premium
                 return View();
             }
 
-            // Llamamos a tu nuevo servicio
             var resultado = await _aiService.ObtenerSugerenciaAsync(prompt, modoPrueba);
 
             ViewBag.Respuesta = resultado;
-            ViewBag.LastPrompt = prompt; // Para no borrar lo que escribiste
+            ViewBag.LastPrompt = prompt;
+
+            // ?? ESTA ES LA LÍNEA QUE TE FALTABA ??
+            ViewBag.IsPremium = true;
 
             return View();
         }

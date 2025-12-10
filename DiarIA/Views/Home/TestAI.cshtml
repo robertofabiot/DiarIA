@@ -1,63 +1,64 @@
 ﻿@{
-    ViewData["Title"] = "Prueba de IA";
+    ViewData["Title"] = "Laboratorio IA";
+    bool isPremium = ViewBag.IsPremium ?? false; // Leemos el valor, default false
 }
 
 <div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-
-            <div class="text-center mb-4">
-                <h1 class="display-5 fw-bold text-primary">🧠 Laboratorio de IA</h1>
-                <p class="lead text-muted">Prueba de conexión con Azure OpenAI (GPT-4o)</p>
-            </div>
-
-            <div class="card shadow-sm border-0 mb-4">
-                <div class="card-body p-4">
-                    <form asp-action="TestAI" method="post">
-
-                        <div class="mb-3">
-                            <label for="prompt" class="form-label fw-bold">Tu Prompt:</label>
-                            <textarea class="form-control" id="prompt" name="prompt" rows="3"
-                                      placeholder="Ej: Dame un consejo estoico para programar..." required>@ViewBag.LastPrompt</textarea>
-                        </div>
-
-                        <div class="form-check form-switch mb-4">
-                            <input class="form-check-input" type="checkbox" role="switch" id="modoPrueba" name="modoPrueba" value="true" checked>
-                            <label class="form-check-label text-secondary" for="modoPrueba">
-                                🛠️ <strong>Modo Mock</strong> (Simular respuesta sin gastar créditos)
-                            </label>
-                        </div>
-
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary btn-lg">
-                                🚀 Enviar Petición
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-
-            @if (ViewBag.Respuesta != null)
-            {
-                <div class="card bg-light border-0 shadow-sm animate__animated animate__fadeIn">
-                    <div class="card-header bg-transparent border-bottom-0 pb-0">
-                        <span class="badge bg-success mb-2">Respuesta Recibida</span>
-                    </div>
-                    <div class="card-body pt-2">
-                        <p class="card-text" style="white-space: pre-wrap; font-family: sans-serif;">@ViewBag.Respuesta</p>
-                    </div>
-                    <div class="card-footer bg-transparent border-top-0 text-end">
-                        <small class="text-muted">Generado por el servicio de IA</small>
-                    </div>
-                </div>
-            }
-
-            <div class="text-center mt-4">
-                <a asp-controller="Home" asp-action="Index" class="text-decoration-none text-muted">
-                    ← Volver al Inicio
-                </a>
-            </div>
-
-        </div>
+    <div class="text-center mb-4">
+        <h1 class="display-5 fw-bold text-primary">🧠 Laboratorio de IA</h1>
     </div>
+
+    @if (isPremium)
+    {
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-body p-4">
+                <span class="badge bg-warning text-dark mb-3">✨ Usuario Premium</span>
+
+                <form asp-action="TestAI" method="post">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Tu Prompt:</label>
+                        <textarea class="form-control" name="prompt" rows="3">@ViewBag.LastPrompt</textarea>
+                    </div>
+
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" name="modoPrueba" value="true" checked>
+                        <label class="form-check-label">Modo Prueba</label>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">Enviar a la IA</button>
+                </form>
+            </div>
+        </div>
+
+        @if (ViewBag.Respuesta != null)
+        {
+            <div class="card bg-light p-3 mt-3">
+                <p style="white-space: pre-wrap;">@ViewBag.Respuesta</p>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="card shadow-lg border-warning text-center p-5">
+            <div class="card-body">
+                <div class="mb-4">
+                    <i class="bi bi-gem" style="font-size: 4rem; color: #ffc107;"></i>
+                </div>
+                <h2 class="card-title fw-bold">Función Exclusiva Premium</h2>
+                <p class="card-text lead text-muted mt-3">
+                    La Inteligencia Artificial avanzada está reservada para nuestros miembros Premium.
+                    Obtén sugerencias ilimitadas y personalizadas.
+                </p>
+
+                <hr class="my-4">
+
+                <div class="d-grid gap-2 col-md-6 mx-auto">
+                    <button class="btn btn-warning btn-lg fw-bold text-dark disabled">
+                        💎 Actualizar a Premium ($15/mes)
+                    </button>
+                    <small class="text-muted fst-italic">Próximamente disponible</small>
+                </div>
+            </div>
+        </div>
+    }
 </div>
