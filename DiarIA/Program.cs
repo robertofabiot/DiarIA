@@ -3,6 +3,8 @@ using DiarIA.Models;
 using DiarIA.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity.UI.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("strConexion") ?? throw new InvalidOperationException("Connection string 'DiarIAContextConnection' not found.");
 
@@ -10,6 +12,8 @@ builder.Services.AddDbContext<DiarIAContext>(options => options.UseSqlServer(con
 
 builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
     .AddEntityFrameworkStores<DiarIAContext>();
+
+builder.Services.AddTransient<IEmailSender, EmailSender>();
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
