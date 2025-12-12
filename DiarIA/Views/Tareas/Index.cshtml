@@ -4,52 +4,165 @@
     ViewData["Title"] = "Mis Tareas";
 }
 
-<div class="container-fluid py-4">
-    <div class="row">
+<div class="container py-4">
+    @* Encabezado Minimalista *@
+    <div class="d-flex justify-content-between align-items-end mb-5">
+        <div>
+            <h1 class="display-5 fw-bold text-dark mb-0">Mis Tareas</h1>
+            <p class="text-muted mt-1 mb-0">Gestiona tu día con claridad.</p>
+        </div>
+        <a asp-action="Create" class="btn btn-primary btn-lg rounded-pill px-4 shadow-sm">
+            <i class="bi bi-plus-lg me-2"></i>Nueva Tarea
+        </a>
+    </div>
 
-        <div class="col-lg-3 col-md-4 mb-4">
-            <div class="chat-container">
-                <div class="chat-header">
-                    <i class="bi bi-robot me-2 fs-4"></i>
-                    <div>
-                        <span class="d-block lh-1">Coach DiarIA</span>
-                        <small class="fw-light opacity-75" style="font-size: 0.75rem;">En línea</small>
+    @* Bloque de Mensajes (Alertas flotantes más limpias) *@
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success border-0 shadow-sm rounded-3 d-flex align-items-center mb-4" role="alert">
+            <i class="bi bi-check-circle-fill me-2 fs-5"></i>
+            <div>@TempData["Success"]</div>
+            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger border-0 shadow-sm rounded-3 d-flex align-items-center mb-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+            <div>@TempData["Error"]</div>
+            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["Info"] != null)
+    {
+        <div class="alert alert-info border-0 shadow-sm rounded-3 d-flex align-items-center mb-4" role="alert">
+            <i class="bi bi-info-circle-fill me-2 fs-5"></i>
+            <div>@TempData["Info"]</div>
+            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row g-4">
+        @* ============================================== *@
+        @* COLUMNA DE TAREAS (Principal) - Izquierda      *@
+        @* ============================================== *@
+        <div class="col-lg-8 order-2 order-lg-1">
+            @if (!Model.Any())
+            {
+                <div class="text-center py-5 rounded-4 bg-light border-0">
+                    <div class="mb-3 text-muted opacity-50">
+                        <i class="bi bi-clipboard-check" style="font-size: 4rem;"></i>
+                    </div>
+                    <h3 class="h5 fw-normal text-muted">No hay tareas pendientes</h3>
+                    <p class="small text-muted mb-0">Disfruta tu tiempo libre o crea una nueva tarea.</p>
+                </div>
+            }
+            else
+            {
+                <div class="d-flex flex-column gap-3">
+                    @foreach (var item in Model.OrderBy(t => t.Completada).ThenBy(t => t.FechaAgendada))
+                    {
+                        // Lógica de colores sutiles
+                        var statusBorder = item.Completada ? "border-success" : "border-primary";
+                        var cardOpacity = item.Completada ? "opacity-75 bg-light" : "bg-white";
+                        var textDecoration = item.Completada ? "text-decoration-line-through text-muted" : "text-dark fw-semibold";
+
+                        // Badge minimalista
+                        string GetPrioridadBadge(DiarIA.Models.NivelPrioridad p) => p switch
+                        {
+                            DiarIA.Models.NivelPrioridad.Urgente => "bg-danger-subtle text-danger border border-danger-subtle",
+                            DiarIA.Models.NivelPrioridad.Alta => "bg-warning-subtle text-warning-emphasis border border-warning-subtle",
+                            _ => "bg-secondary-subtle text-secondary border border-secondary-subtle"
+                        };
+
+                        <div class="card border-0 shadow-sm rounded-4 overflow-hidden @cardOpacity position-relative h-100">
+                            <div class="position-absolute top-0 bottom-0 start-0 border-start border-5 @statusBorder" style="width: 5px;"></div>
+
+                            <div class="card-body p-4 ps-4">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h5 class="card-title mb-0 @textDecoration" style="margin-left: 10px;">
+                                        @Html.DisplayFor(modelItem => item.Nombre)
+                                    </h5>
+                                    <span class="badge rounded-pill fw-normal @GetPrioridadBadge(item.Prioridad)">
+                                        @item.Prioridad
+                                    </span>
+                                </div>
+
+                                <p class="card-text text-muted small mb-3" style="margin-left: 10px;">
+                                    @Html.DisplayFor(modelItem => item.Descripcion)
+                                </p>
+
+                                <div class="d-flex flex-wrap align-items-center gap-3 small text-muted" style="margin-left: 10px;">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-calendar-event me-2 text-primary opacity-50"></i>
+                                        @if (item.FechaAgendada.HasValue)
+                                        {
+                                            <span>@item.FechaAgendada.Value.ToString("ddd d MMM, HH:mm")</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-warning">Sin agendar</span>
+                                        }
+                                    </div>
+
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-clock me-2 text-primary opacity-50"></i>
+                                        <span>@item.DuracionMinutos min</span>
+                                    </div>
+
+                                    <div class="ms-auto d-flex gap-2">
+                                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-link p-0 text-decoration-none text-muted" title="Editar">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </a>
+                                        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-link p-0 text-decoration-none text-muted" title="Detalles">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-link p-0 text-decoration-none text-danger opacity-75" title="Eliminar">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+
+        @* COLUMNA DE IA (Panel Lateral) - Derecha        *@
+        <div class="col-lg-4 order-1 order-lg-2 mb-4 mb-lg-0">
+            <div class="sticky-top" style="top: 2rem; z-index: 100;">
+                <div class="card border-0 shadow-sm rounded-4 bg-white">
+                    <div class="card-body p-4 text-center">
+                        <div class="mb-3 text-primary">
+                            <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                <i class="bi bi-stars fs-3"></i>
+                            </div>
+                        </div>
+                        <h5 class="card-title fw-bold">Asistente IA</h5>
+                        <p class="text-muted small mb-4">
+                            ¿Día caótico? Deja que la inteligencia artificial reorganice tu agenda por ti.
+                        </p>
+
+                        <form asp-action="Reorganizar" method="post">
+                            <div class="form-floating mb-3">
+                                <input type="text" name="instruccionIA" class="form-control rounded-3 border-light bg-light" id="floatingInput"
+                                       placeholder="Ej: Libera mi tarde..." required style="box-shadow: none;">
+                                <label for="floatingInput" class="text-muted">¿Qué necesitas?</label>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 shadow-sm transition-hover">
+                                <i class="bi bi-magic me-2"></i>Optimizar Agenda
+                            </button>
+                        </form>
                     </div>
                 </div>
 
-                <div class="chat-messages" id="chatHistory">
-                    <div class="msg-bot">
-                        Hola, <strong>@User.Identity?.Name</strong>. 👋 <br>
-                        ¿Cómo te sientes hoy para realizar tus tareas?
-                    </div>
-                </div>
-
-                <div class="chat-actions text-center">
-                    <p class="text-muted small mb-2">Selecciona tu estado:</p>
-                    <div class="d-flex flex-wrap justify-content-center gap-1">
-                        <button class="btn btn-mood" onclick="responderChat('cansado')">😴 Cansado</button>
-                        <button class="btn btn-mood" onclick="responderChat('triste')">😔 Triste</button>
-                        <button class="btn btn-mood" onclick="responderChat('motivado')">🔥 Motivado</button>
-                        <button class="btn btn-mood" onclick="responderChat('estresado')">🤯 Estresado</button>
-                    </div>
+                @* Info adicional sutil *@
+                <div class="mt-4 text-center text-muted small opacity-75">
+                    <p><i class="bi bi-shield-check me-1"></i> Protegido por Azure OpenAI</p>
                 </div>
             </div>
         </div>
-
-        <div class="col-lg-9 col-md-8">
-
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2 class="fw-bold text-dark mb-0">Tablero de Tareas</h2>
-                <span class="badge bg-light text-dark border px-3 py-2 rounded-pill">
-                    @if (Model != null)
-                    {
-                        @Model.Count()
-                    }
-                    else
-                    {
-
-                        <text>0</text>
-                    }
- pendientes
-                </span>
-            </div>
+    </div>
+</div>

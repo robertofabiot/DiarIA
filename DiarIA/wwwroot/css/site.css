@@ -218,22 +218,22 @@ body {
     position: sticky;
     top: 20px;
 
-.chat-header {
-    background: var(--color-primario);
-    color: white;
-    padding: 20px;
-    font-weight: bold;
-    display: flex;
-    align-items: center;
-}
+    .chat-header {
+        background: var(--color-primario);
+        color: white;
+        padding: 20px;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+    }
 
-.chat-messages {
-    flex-grow: 1;
-    padding: 20px;
-    overflow-y: auto;
-    background-color: #f8f9fa;
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
+    .chat-messages {
+        flex-grow: 1;
+        padding: 20px;
+        overflow-y: auto;
+        background-color: #f8f9fa;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
 
