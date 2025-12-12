@@ -1,28 +1,46 @@
 ﻿@using Microsoft.AspNetCore.Identity
 @using DiarIA.Models
+@using DiarIA.Areas.Identity.Pages.Account
 
 @inject SignInManager<ApplicationUser> SignInManager
 @inject UserManager<ApplicationUser> UserManager
 
-<ul class="navbar-nav">
-@if (SignInManager.IsSignedIn(User))
-{
-    <li class="nav-item">
-        <a id="manage" class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Manage/Index" title="Manage">Hello @UserManager.GetUserName(User)!</a>
-    </li>
-    <li class="nav-item">
-        <form id="logoutForm" class="form-inline" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })">
-            <button id="logout" type="submit" class="nav-link btn btn-link text-dark border-0">Logout</button>
-        </form>
-    </li>
+@{
+    var currentPage = ViewContext.RouteData.Values["Page"]?.ToString();
+    bool isAuthPage = currentPage != null && (
+        currentPage.Equals("/Account/Login", StringComparison.OrdinalIgnoreCase) ||
+        currentPage.Equals("/Account/Register", StringComparison.OrdinalIgnoreCase));
 }
-else
-{
-    <li class="nav-item">
-        <a class="nav-link text-dark" id="register" asp-area="Identity" asp-page="/Account/Register">Register</a>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link text-dark" id="login" asp-area="Identity" asp-page="/Account/Login">Login</a>
-    </li>
-}
+
+<ul class="navbar-nav align-items-center">
+    @if (SignInManager.IsSignedIn(User))
+    {
+        var userName = UserManager.GetUserName(User);
+        var inicial = !string.IsNullOrEmpty(userName) ? userName.Substring(0, 1).ToUpper() : "U";
+
+        <li class="nav-item d-flex align-items-center me-3">
+            <span class="me-2 text-secondary small fw-bold">Hola, @userName</span>
+            <a id="manage" class="user-avatar" asp-area="Identity" asp-page="/Account/Manage/Index" title="Mi Cuenta">@inicial</a>
+        </li>
+        <li class="nav-item">
+            <form id="logoutForm" class="form-inline" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })">
+                <button id="logout" type="submit" class="btn btn-outline-danger btn-sm rounded-pill px-3 fw-bold">Salir</button>
+            </form>
+        </li>
+    }
+    else
+    {
+        if (!isAuthPage)
+        {
+            <li class="nav-item">
+                <a class="btn btn-outline-primary btn-sm btn-nav-auth" id="login" asp-area="Identity" asp-page="/Account/Login">Iniciar Sesión</a>
+            </li>
+            <li class="nav-item d-flex align-items-center">
+                <span class="nav-divider">|</span>
+            </li>
+            <li class="nav-item">
+                <a class="btn btn-primary btn-sm btn-nav-auth shadow-sm" id="register" asp-area="Identity" asp-page="/Account/Register">Registrarse</a>
+            </li>
+        }
+    }
 </ul>

@@ -1,52 +1,55 @@
-﻿@{
+﻿@using Microsoft.AspNetCore.Identity
+@using DiarIA.Models
+@inject SignInManager<ApplicationUser> SignInManager
+
+@{
     ViewData["Title"] = "Inicio";
 }
 
-<div class="text-center mt-5">
-    <h1 class="display-3 fw-bold text-primary">DiarIA 🤖</h1>
-    <p class="lead mb-4">
-        Tu planificador inteligente. Deja que la IA organice tu día según tu energía.
-    </p>
-
-    <div class="card shadow-sm mx-auto" style="max-width: 600px;">
-        <div class="card-body p-5">
-            @if (User.Identity != null && User.Identity.IsAuthenticated)
-            {
-                <div class="text-success mb-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-person-circle" viewBox="0 0 16 16">
-                        <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z" />
-                        <path fill-rule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z" />
-                    </svg>
+<div class="container d-flex flex-column justify-content-center" style="min-height: 80vh;">
+    @if (SignInManager.IsSignedIn(User))
+    {
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="text-center p-5 bg-white rounded-4 shadow-lg">
+                    <h1 class="display-4 fw-bold text-primary mb-3">Bienvenido a DiarIA</h1>
+                    <div class="my-4">
+                        <img src="~/img/logo_sin_fondo.png" alt="DiarIA Logo" style="max-width: 150px; height: auto;" />
+                    </div>
+                    <div class="motivational-capsule mt-2">
+                        <i class="bi bi-lightning-fill text-warning fs-4 me-2"></i>
+                        <h5 class="mb-0 fw-light fst-italic">"¡Tu mejor versión está a la vuelta de la esquina!"</h5>
+                    </div>
+                    <div class="mt-5">
+                        <a asp-controller="Tareas" asp-action="Index" class="btn btn-primary btn-lg rounded-pill px-5 py-3 shadow fw-bold">
+                            Ir a mis tareas <i class="bi bi-arrow-right-short ms-2 align-middle"></i>
+                        </a>
+                    </div>
                 </div>
-                <h2 class="h4 mb-3">¡Hola, @User.Identity.Name!</h2>
-                <p class="text-muted">Tu panel de tareas está listo en la nube.</p>
-                <div class="d-grid gap-2">
-                    <a asp-controller="Tareas" asp-action="Index" class="btn btn-primary btn-lg">
-                        ⚡ Ir a mis Tareas
-                    </a>
-                </div>
-            }
-            else
-            {
-                <div class="mb-4">
-                    <i class="bi bi-shield-lock" style="font-size: 3rem; color: #6c757d;"></i>
-                </div>
-                <h3 class="h5 mb-3">Empieza ahora</h3>
-                <p class="text-muted mb-4">Regístrate para guardar tus tareas en Azure y recibir consejos de GPT-4o.</p>
-
-                <div class="d-grid gap-3">
-                    <a class="btn btn-primary btn-lg" asp-area="Identity" asp-page="/Account/Login">
-                        Iniciar Sesión
-                    </a>
-                    <a class="btn btn-outline-secondary" asp-area="Identity" asp-page="/Account/Register">
-                        Crear Cuenta Gratis
-                    </a>
-                </div>
-            }
+            </div>
         </div>
-    </div>
-
-    <div class="mt-5 text-muted small">
-        <p>Potenciado por <strong>Azure OpenAI (GPT-4o)</strong> & <strong>ASP.NET Core 8</strong></p>
-    </div>
+    }
+    else
+    {
+        <div class="row align-items-center mt-4">
+            <div class="col-md-7 mb-4 mb-md-0">
+                <div class="welcome-box">
+                    <h1 class="display-4 fw-bold text-dark mb-2">Bienvenido a <span class="text-primary">DiarIA</span></h1>
+                    <p class="lead text-secondary mb-4">Tu asistente personal de tareas según tu ánimo.</p>
+                    <div class="mt-3">
+                        <img src="~/img/logo_sin_fondo.png" alt="DiarIA Logo" style="max-width: 250px; height: auto;" />
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-5">
+                <div class="auth-box text-center">
+                    <h2 class="fw-bold text-success mb-4">¡Comienza ya!</h2>
+                    <div class="d-grid gap-3 px-2">
+                        <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-outline-primary btn-lg rounded-pill fw-bold">Iniciar Sesión</a>
+                        <a asp-area="Identity" asp-page="/Account/Register" class="btn btn-primary btn-lg rounded-pill fw-bold shadow">Crear cuenta gratis</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
 </div>
