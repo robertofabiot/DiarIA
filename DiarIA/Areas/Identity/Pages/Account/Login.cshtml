@@ -1,83 +1,53 @@
 ﻿@page
-@model LoginModel
-
+@model DiarIA.Areas.Identity.Pages.Account.LoginModel
 @{
-    ViewData["Title"] = "Log in";
+    ViewData["Title"] = "Iniciar Sesión";
 }
 
-<h1>@ViewData["Title"]</h1>
-<div class="row">
-    <div class="col-md-4">
-        <section>
-            <form id="account" method="post">
-                <h2>Use a local account to log in.</h2>
-                <hr />
-                <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
-                <div class="form-floating mb-3">
-                    <input asp-for="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
-                    <label asp-for="Input.Email" class="form-label">Email</label>
-                    <span asp-validation-for="Input.Email" class="text-danger"></span>
-                </div>
-                <div class="form-floating mb-3">
-                    <input asp-for="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="password" />
-                    <label asp-for="Input.Password" class="form-label">Password</label>
-                    <span asp-validation-for="Input.Password" class="text-danger"></span>
-                </div>
-                <div class="checkbox mb-3">
-                    <label asp-for="Input.RememberMe" class="form-label">
-                        <input class="form-check-input" asp-for="Input.RememberMe" />
-                        @Html.DisplayNameFor(m => m.Input.RememberMe)
-                    </label>
-                </div>
-                <div>
-                    <button id="login-submit" type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
-                </div>
-                <div>
-                    <p>
-                        <a id="forgot-password" asp-page="./ForgotPassword">Forgot your password?</a>
-                    </p>
-                    <p>
-                        <a asp-page="./Register" asp-route-returnUrl="@Model.ReturnUrl">Register as a new user</a>
-                    </p>
-                    <p>
-                        <a id="resend-confirmation" asp-page="./ResendEmailConfirmation">Resend email confirmation</a>
-                    </p>
-                </div>
-            </form>
-        </section>
+<div class="auth-wrapper">
+    <h2 class="auth-header">Iniciar Sesión</h2>
+    <div class="auth-separator"></div>
+    <div id="recoverySuccessAlert" class="alert alert-success border-0 shadow-sm text-center" style="display:none;">
+        <i class="bi bi-check-circle-fill me-2"></i> <strong>¡Listo!</strong> Enlace enviado.
     </div>
-    <div class="col-md-6 col-md-offset-2">
-        <section>
-            <h3>Use another service to log in.</h3>
-            <hr />
-            @{
-                if ((Model.ExternalLogins?.Count ?? 0) == 0)
-                {
-                    <div>
-                        <p>
-                            There are no external authentication services configured. See this <a href="https://go.microsoft.com/fwlink/?LinkID=532715">article
-                            about setting up this ASP.NET application to support logging in via external services</a>.
-                        </p>
-                    </div>
-                }
-                else
-                {
-                    <form id="external-account" asp-page="./ExternalLogin" asp-route-returnUrl="@Model.ReturnUrl" method="post" class="form-horizontal">
-                        <div>
-                            <p>
-                                @foreach (var provider in Model.ExternalLogins!)
-                                {
-                                    <button type="submit" class="btn btn-primary" name="provider" value="@provider.Name" title="Log in using your @provider.DisplayName account">@provider.DisplayName</button>
-                                }
-                            </p>
-                        </div>
-                    </form>
-                }
-            }
-        </section>
-    </div>
+    <form id="account" method="post" novalidate>
+        <div id="globalErrorAlert" class="alert-danger-soft" role="alert" style="display:none;">
+            <div asp-validation-summary="ModelOnly" class="text-danger-bold"></div>
+        </div>
+        <div class="form-floating mb-3">
+            <input asp-for="Input.Email" class="form-control form-control-auth inputs-limpiar" placeholder="correo" data-val="true" data-val-required="Ingrese correo." />
+            <label asp-for="Input.Email" class="text-muted">Correo</label>
+            <span asp-validation-for="Input.Email" class="text-danger-bold"></span>
+        </div>
+        <div class="form-floating mb-3">
+            <input asp-for="Input.Password" class="form-control form-control-auth inputs-limpiar" placeholder="pass" data-val="true" data-val-required="Ingrese contraseña." />
+            <label asp-for="Input.Password" class="text-muted">Contraseña</label>
+            <span asp-validation-for="Input.Password" class="text-danger-bold"></span>
+        </div>
+        <div class="d-flex justify-content-between mb-3">
+            <div class="checkbox"><label class="text-muted small"><input class="form-check-input me-1" asp-for="Input.RememberMe" /> Recordarme</label></div>
+            <a href="#collapseForgot" data-bs-toggle="collapse" class="text-decoration-none small fw-bold text-primary">¿Olvidaste contraseña?</a>
+        </div>
+        <div class="collapse mb-3" id="collapseForgot">
+            <div class="p-3 bg-light rounded-3 border">
+                <input type="email" id="recoveryEmailInput" class="form-control mb-2" placeholder="Correo de recuperación" />
+                <button id="btnSendRecovery" class="btn btn-primary w-100 btn-sm">Enviar</button>
+            </div>
+        </div>
+        <button id="login-submit" type="submit" class="btn btn-auth-big">Iniciar Sesión</button>
+        <div class="text-center mt-3"><a asp-page="./Register" class="small text-secondary">¿No tienes cuenta? <span class="fw-bold text-primary">Regístrate</span></a></div>
+    </form>
 </div>
-
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function () {
+            if ($(".text-danger-bold ul li").length > 0) $("#globalErrorAlert").show();
+            $(".inputs-limpiar").on("input", function() { $("#globalErrorAlert").fadeOut(200); });
+            $("#btnSendRecovery").click(function (e) {
+                e.preventDefault();
+                $.ajax({ url: '/Identity/Account/ForgotPassword', type: 'POST', data: { "Input.Email": $("#recoveryEmailInput").val(), "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val() }, success: function () { $("#recoverySuccessAlert").fadeIn().delay(3000).fadeOut(); } });
+            });
+        });
+    </script>
 }

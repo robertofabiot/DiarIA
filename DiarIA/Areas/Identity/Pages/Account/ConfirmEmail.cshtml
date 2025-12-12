@@ -1,8 +1,8 @@
 ﻿@page
-@model ConfirmEmailModel
-@{
-    ViewData["Title"] = "Confirm email";
-}
-
-<h1>@ViewData["Title"]</h1>
-<partial name="_StatusMessage" model="Model.StatusMessage" />
+@model DiarIA.Areas.Identity.Pages.Account.ConfirmEmailModel
+<div class="auth-wrapper text-center">
+    <i class="bi bi-check-lg text-success" style="font-size: 4rem;"></i>
+    <h2 class="fw-bold text-success">¡Felicidades!</h2>
+    <p>Correo verificado.</p>
+    <a asp-page="./Login" class="btn btn-success rounded-pill fw-bold w-100">Empezar</a>
+</div>
