@@ -1,5 +1,6 @@
 ﻿@page
 @model DiarIA.Areas.Identity.Pages.Account.LoginModel
+
 @{
     ViewData["Title"] = "Iniciar Sesión";
 }
@@ -7,47 +8,180 @@
 <div class="auth-wrapper">
     <h2 class="auth-header">Iniciar Sesión</h2>
     <div class="auth-separator"></div>
-    <div id="recoverySuccessAlert" class="alert alert-success border-0 shadow-sm text-center" style="display:none;">
-        <i class="bi bi-check-circle-fill me-2"></i> <strong>¡Listo!</strong> Enlace enviado.
+
+    <div id="recoverySuccessAlert" class="alert alert-success border-0 shadow-sm text-center" style="display:none; border-radius: 10px;">
+        <i class="bi bi-check-circle-fill me-2"></i>
+        <strong>¡Listo!</strong> Hemos enviado el enlace de recuperación a tu correo.
     </div>
+
     <form id="account" method="post" novalidate>
+
         <div id="globalErrorAlert" class="alert-danger-soft" role="alert" style="display:none;">
             <div asp-validation-summary="ModelOnly" class="text-danger-bold"></div>
         </div>
+
         <div class="form-floating mb-3">
-            <input asp-for="Input.Email" class="form-control form-control-auth inputs-limpiar" placeholder="correo" data-val="true" data-val-required="Ingrese correo." />
-            <label asp-for="Input.Email" class="text-muted">Correo</label>
+            <input asp-for="Input.Email" class="form-control form-control-auth inputs-limpiar"
+                   autocomplete="username" aria-required="true" placeholder="nombre@ejemplo.com"
+                   data-val="true"
+                   data-val-required="Ingrese su correo electrónico."
+                   data-val-email="El formato del correo no es válido." />
+            <label asp-for="Input.Email" class="text-muted">Correo Electrónico</label>
             <span asp-validation-for="Input.Email" class="text-danger-bold"></span>
         </div>
+
         <div class="form-floating mb-3">
-            <input asp-for="Input.Password" class="form-control form-control-auth inputs-limpiar" placeholder="pass" data-val="true" data-val-required="Ingrese contraseña." />
+            <input asp-for="Input.Password" class="form-control form-control-auth inputs-limpiar"
+                   autocomplete="current-password" aria-required="true" placeholder="contraseña"
+                   data-val="true"
+                   data-val-required="Ingrese su contraseña." />
             <label asp-for="Input.Password" class="text-muted">Contraseña</label>
             <span asp-validation-for="Input.Password" class="text-danger-bold"></span>
         </div>
-        <div class="d-flex justify-content-between mb-3">
-            <div class="checkbox"><label class="text-muted small"><input class="form-check-input me-1" asp-for="Input.RememberMe" /> Recordarme</label></div>
-            <a href="#collapseForgot" data-bs-toggle="collapse" class="text-decoration-none small fw-bold text-primary">¿Olvidaste contraseña?</a>
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="checkbox">
+                <label asp-for="Input.RememberMe" class="form-label text-muted small mb-0">
+                    <input class="form-check-input me-1" asp-for="Input.RememberMe" />
+                    Recordarme
+                </label>
+            </div>
+
+            <a href="#collapseForgot" id="btnForgotToggle" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="collapseForgot" class="text-decoration-none small fw-bold text-primary">
+                ¿Olvidaste tu contraseña?
+            </a>
         </div>
+
         <div class="collapse mb-3" id="collapseForgot">
-            <div class="p-3 bg-light rounded-3 border">
-                <input type="email" id="recoveryEmailInput" class="form-control mb-2" placeholder="Correo de recuperación" />
-                <button id="btnSendRecovery" class="btn btn-primary w-100 btn-sm">Enviar</button>
+            <div class="p-3 bg-light rounded-3 border position-relative">
+                <button type="button" class="btn-close position-absolute top-0 end-0 m-2 small" data-bs-toggle="collapse" data-bs-target="#collapseForgot" aria-label="Close"></button>
+
+                <h6 class="text-center fw-bold text-dark mb-2 small">Recuperar Contraseña</h6>
+
+                <div id="forgotFormContainer">
+                    <div class="form-floating mb-2">
+                        <input type="email" id="recoveryEmailInput" class="form-control form-control-auth bg-white" placeholder="tucorreo@ejemplo.com" />
+                        <label class="text-muted small">Tu correo registrado</label>
+                    </div>
+
+                    <button type="button" id="btnSendRecovery" class="btn btn-primary w-100 rounded-pill fw-bold btn-sm py-2">
+                        Enviar enlace de recuperación
+                    </button>
+                    <span id="recoveryErrorMsg" class="text-danger-bold text-center mt-2" style="display:none;">Ingrese un correo válido.</span>
+                </div>
+
+                <div id="forgotLoading" class="text-center py-2" style="display:none;">
+                    <div class="spinner-border text-primary spinner-border-sm" role="status"></div> Enviando...
+                </div>
             </div>
         </div>
+
         <button id="login-submit" type="submit" class="btn btn-auth-big">Iniciar Sesión</button>
-        <div class="text-center mt-3"><a asp-page="./Register" class="small text-secondary">¿No tienes cuenta? <span class="fw-bold text-primary">Regístrate</span></a></div>
+
+        <div class="text-center mt-3">
+            <a asp-area="Identity" asp-page="/Account/Register" asp-route-returnUrl="@Model.ReturnUrl" class="text-decoration-none small text-secondary">
+                ¿No tienes una cuenta? <span class="fw-bold text-primary">Regístrate</span>
+            </a>
+        </div>
     </form>
 </div>
+
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+
     <script>
         $(document).ready(function () {
-            if ($(".text-danger-bold ul li").length > 0) $("#globalErrorAlert").show();
-            $(".inputs-limpiar").on("input", function() { $("#globalErrorAlert").fadeOut(200); });
+
+            // 1. Detección inteligente de errores del servidor
+            var $summaryContent = $(".text-danger-bold ul li");
+            if ($summaryContent.length > 0) {
+                $("#globalErrorAlert").show();
+                $summaryContent.each(function() {
+                    if ($(this).text().includes("Invalid login attempt")) {
+                        $(this).text("Correo o contraseña incorrectos.");
+                    }
+                });
+            }
+
+            // 2. Limpieza de errores al escribir (UX Fluida)
+            $(".inputs-limpiar").on("input", function() {
+                if ($("#globalErrorAlert").is(":visible")) {
+                    $("#globalErrorAlert").fadeOut(200);
+                }
+                $(this).siblings(".text-danger-bold").text("");
+                $(this).removeClass("input-validation-error");
+            });
+
+            // 3. Lógica del botón Toggle
+            $("#btnForgotToggle").click(function() {
+                $("#globalErrorAlert").slideUp(200);
+            });
+
+            // 4. Lógica AJAX para Recuperación de Contraseña
+            function validateAndSendRecovery() {
+                var emailInput = $("#recoveryEmailInput");
+                var email = emailInput.val();
+                var emailRegex = /^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/;
+
+                $("#recoveryErrorMsg").hide();
+
+                if (!email || !emailRegex.test(email)) {
+                    $("#recoveryErrorMsg").show();
+                    return;
+                }
+
+                $("#forgotFormContainer").hide();
+                $("#forgotLoading").show();
+
+                // Token antifalsificación necesario
+                var token = $('input[name="__RequestVerificationToken"]').val();
+
+                $.ajax({
+                    url: '/Identity/Account/ForgotPassword',
+                    type: 'POST',
+                    data: {
+                        "Input.Email": email,
+                        "__RequestVerificationToken": token
+                    },
+                    success: function (response) {
+                        // Éxito visual
+                        $("#collapseForgot").collapse('hide');
+                        $("#forgotLoading").hide();
+                        $("#forgotFormContainer").show();
+                        $("#recoveryEmailInput").val("");
+
+                        $("#recoverySuccessAlert").fadeIn();
+                        setTimeout(function() {
+                            $("#recoverySuccessAlert").fadeOut();
+                        }, 5000);
+                    },
+                    error: function () {
+                        // ASP.NET a veces redirige aunque tenga éxito o falle por seguridad
+                        $("#collapseForgot").collapse('hide');
+                        $("#forgotLoading").hide();
+                        $("#forgotFormContainer").show();
+                        $("#recoveryEmailInput").val("");
+
+                        $("#recoverySuccessAlert").fadeIn();
+                         setTimeout(function() {
+                            $("#recoverySuccessAlert").fadeOut();
+                        }, 5000);
+                    }
+                });
+            }
+
             $("#btnSendRecovery").click(function (e) {
                 e.preventDefault();
-                $.ajax({ url: '/Identity/Account/ForgotPassword', type: 'POST', data: { "Input.Email": $("#recoveryEmailInput").val(), "__RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val() }, success: function () { $("#recoverySuccessAlert").fadeIn().delay(3000).fadeOut(); } });
+                validateAndSendRecovery();
+            });
+
+            // Permitir Enter en el campo de recuperación
+            $("#recoveryEmailInput").keypress(function(e) {
+                if(e.which == 13) {
+                    e.preventDefault();
+                    validateAndSendRecovery();
+                }
             });
         });
     </script>
-}
+}   
